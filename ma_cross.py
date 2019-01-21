@@ -15,14 +15,6 @@ from backtest import Strategy, Portfolio
 
 
 class MarketOnClosePortfolio(Portfolio):
-    """Encapsulates the notion of a portfolio of positions based
-    on a set of signals as provided by a Strategy.
-
-    Requires:
-    symbol - A stock symbol which forms the basis of the portfolio.
-    bars - A DataFrame of bars for a symbol set.
-    signals - A pandas DataFrame of signals (1, 0, -1) for each symbol.
-    initial_capital - The amount in cash at the start of the portfolio."""
 
     def __init__(self, symbol, bars, signals, initial_capital=100000.0):
         self.symbol = symbol        
@@ -48,17 +40,10 @@ class MarketOnClosePortfolio(Portfolio):
 
 
 class MovingAverageCrossStrategy(Strategy):
-    """    
-    Requires:
-    symbol - A stock symbol on which to form a strategy on.
-    bars - A DataFrame of bars for the above symbol.
-    short_window - Lookback period for short moving average.
-    long_window - Lookback period for long moving average."""
 
     def __init__(self, symbol, bars, short_window=100, long_window=400):
         self.symbol = symbol
         self.bars = bars
-
         self.short_window = short_window
         self.long_window = long_window
 
@@ -68,15 +53,8 @@ class MovingAverageCrossStrategy(Strategy):
         signals = pd.DataFrame(index=self.bars.index)
         signals['signal'] = 0.0
 
-        # Create the set of short and long simple moving averages over the 
-        # respective periods
         signals['short_mavg'] =bars['Close'].rolling(window=self.short_window, min_periods=1).mean()
-        signals['long_mavg'] = bars['Close'].rolling(window=self.long_window, min_periods=1).mean()
-
-        # Create a 'signal' (invested or not invested) when the short moving average crosses the long
-        # moving average, but only for the period greater than the shortest moving average window
-#        signals['signal'][self.short_window:] = np.where(signals['short_mavg'][self.short_window:] 
-#            > signals['long_mavg'][self.short_window:], 1.0, 0.0)   
+        signals['long_mavg'] = bars['Close'].rolling(window=self.long_window, min_periods=1).mean()  
         signals['signal']=((signals['short_mavg']-signals['long_mavg']).apply(np.sign)+1)/2
         # Take the difference of the signals in order to generate actual trading orders
         signals['positions'] = signals['signal'].diff()   
@@ -84,10 +62,8 @@ class MovingAverageCrossStrategy(Strategy):
         return signals
 
 symbol = 'MSFT'
-bars = data.DataReader(symbol, "yahoo", datetime.datetime(2001,1,1), datetime.datetime(2015,1,1))
+bars = data.DataReader(symbol, "google", datetime.datetime(2001,1,1), datetime.datetime(2015,1,1))
 
-# Create a Moving Average Cross Strategy instance with a short moving
-# average window of 100 days and a long window of 400 days
 mac = MovingAverageCrossStrategy(symbol, bars, short_window=100, long_window=400)
 signals = mac.generate_signals()
 
